@@ -30,6 +30,6 @@ public class ChatMessage {
 
     public enum MessageType {
         CHAT, JOIN, LEAVE, TYPING,
-        IMAGE, FILE
+        IMAGE, FILE, AUDIO
     }
 }

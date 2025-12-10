@@ -4,6 +4,13 @@ var stompClient = null;
 var username = null;
 var selectedUser = null;
 
+
+// YANGI O'ZGARUVCHILAR
+var recordBtn = document.getElementById('recordBtn');
+var mediaRecorder = null;
+var audioChunks = [];
+var isRecording = false;
+
 // HTML elementlar
 var usernamePage = document.querySelector('#username-page');
 var chatPage = document.querySelector('#chat-page');
@@ -108,14 +115,17 @@ if(fileInput) {
     });
 }
 
-// Yordamchi: Socketga yuborish
+
 function sendToSocket(chatMessage) {
+    // MUHIM: selectedUser borligini tekshiramiz (Private chatdamizmi?)
     if (selectedUser) {
-        chatMessage.recipient = selectedUser;
+        chatMessage.recipient = selectedUser; // <--- BU QATOR BORMI?
         stompClient.send("/app/chat.private", {}, JSON.stringify(chatMessage));
-        // O'zimizga ham chiqarish (agar private bo'lsa)
+
+        // O'zimizga chiqarish
         displayMessage(chatMessage);
     } else {
+        // Public chat
         stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
     }
 }
@@ -189,36 +199,36 @@ function displayMessage(message) {
     }
 
     // CONTENT TURI (TEXT, IMAGE, FILE)
+    // ...
+    // CONTENT TURI (TEXT, IMAGE, FILE, AUDIO)
     var contentElement;
+
     if (message.type === 'IMAGE') {
+        // ... eski image kodi ...
         contentElement = document.createElement('img');
         contentElement.src = message.content;
-        contentElement.style.maxWidth = '200px';
-        contentElement.style.borderRadius = '10px';
-        contentElement.style.cursor = 'pointer';
-        contentElement.onclick = () => window.open(message.content, '_blank');
+        // ...
     }
     else if (message.type === 'FILE') {
+        // ... eski file kodi ...
         contentElement = document.createElement('a');
-        contentElement.href = message.content;
-        contentElement.target = "_blank";
-        contentElement.classList.add('file-attachment');
-
-        // Fayl nomini chiroyli qilish
-        let fileName = message.content.split('/').pop().split('_').slice(1).join('_') || "Fayl";
-        contentElement.innerHTML = `<i class="fa-solid fa-file-arrow-down"></i> ${fileName}`;
-        contentElement.style.display = "block";
-        contentElement.style.background = "#f1f1f1";
-        contentElement.style.padding = "10px";
-        contentElement.style.borderRadius = "5px";
-        contentElement.style.textDecoration = "none";
-        contentElement.style.color = "#333";
+        // ...
     }
+    // --- YANGI QO'SHILGAN AUDIO QISMI ---
+    else if (message.type === 'AUDIO') {
+        contentElement = document.createElement('audio');
+        contentElement.controls = true; // Play/Pause tugmalari chiqishi uchun
+        contentElement.src = message.content;
+        contentElement.style.marginTop = "5px";
+        contentElement.style.maxWidth = "250px"; // Chatda chiroyli turishi uchun
+    }
+    // ------------------------------------
     else {
         contentElement = document.createElement('p');
         var messageText = document.createTextNode(message.content);
         contentElement.appendChild(messageText);
     }
+// ...
 
     messageElement.appendChild(contentElement);
 
@@ -361,3 +371,91 @@ messageInput.addEventListener('input', function () {
         }));
     }
 });
+
+// ---------------------------------------------------------
+// OVOZLI XABAR LOGIKASI (YANGI)
+// ---------------------------------------------------------
+
+if (recordBtn) {
+    recordBtn.addEventListener('click', function() {
+        if (!isRecording) {
+            startRecording();
+        } else {
+            stopRecording();
+        }
+    });
+}
+
+function startRecording() {
+    // Brauzerdan mikrofon ruxsatini so'rash
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.start();
+
+            isRecording = true;
+            recordBtn.classList.add('recording'); // Qizil effekt
+            typingStatus.innerText = "Ovoz yozilmoqda..."; // Statusga chiqarish
+
+            audioChunks = [];
+
+            // Ovoz bo'laklarini yig'ish
+            mediaRecorder.addEventListener("dataavailable", event => {
+                audioChunks.push(event.data);
+            });
+
+            // Yozish to'xtaganda
+            mediaRecorder.addEventListener("stop", () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' }); // Yoki 'audio/mp3'
+                sendAudioFile(audioBlob);
+            });
+        })
+        .catch(error => {
+            console.error("Mikrofonda xatolik:", error);
+            alert("Mikrofonni ishlatishga ruxsat bering!");
+        });
+}
+
+function stopRecording() {
+    if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        recordBtn.classList.remove('recording');
+        typingStatus.innerText = "";
+
+        // Streamni o'chirish (mikrofon ikonkasini brauzerdan yo'qotish uchun)
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    }
+}
+
+// Ovoz faylini serverga yuklash va WebSocketga yuborish
+function sendAudioFile(audioBlob) {
+    var formData = new FormData();
+    // Fayl nomi serverda unique bo'lishi kerak, shuning uchun timestamp qo'shamiz
+    formData.append("file", audioBlob, "voice_" + new Date().getTime() + ".webm");
+
+    typingStatus.innerText = "Ovoz yuklanmoqda...";
+
+    fetch('/api/files/upload', { // Sizdagi mavjud upload API
+        method: 'POST',
+        body: formData
+    })
+        .then(response => {
+            if(response.ok) return response.text();
+            throw new Error("Audio Upload Error");
+        })
+        .then(fileUrl => {
+            typingStatus.innerText = "";
+
+            var chatMessage = {
+                sender: username,
+                content: fileUrl,
+                type: 'AUDIO' // Backenddagi yangi ENUM turi
+            };
+            sendToSocket(chatMessage);
+        })
+        .catch(error => {
+            console.error("Audio yuklashda xatolik:", error);
+            typingStatus.innerText = "Ovoz yuborilmadi!";
+        });
+}

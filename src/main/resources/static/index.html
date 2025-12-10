@@ -54,15 +54,23 @@
             </ul>
 
             <!-- Input qismini shunga almashtiring -->
+            <!-- ... yuqoridagi kodlar ... -->
+
             <form id="messageForm" name="messageForm" class="message-input-area">
                 <div class="input-group">
-                    <!-- Yashirin File Input -->
+                    <!-- Yashirin File Input (o'zgarishsiz) -->
                     <input type="file" id="fileInput" style="display: none;" />
 
-                    <!-- Skrepka tugmasi -->
+                    <!-- Skrepka tugmasi (o'zgarishsiz) -->
                     <button type="button" class="attach-btn" onclick="document.getElementById('fileInput').click();">
                         <i class="fa-solid fa-paperclip"></i>
                     </button>
+
+                    <!-- --- YANGI QO'SHILGAN QISM: MIKROFON TUGMASI --- -->
+                    <button type="button" id="recordBtn" class="attach-btn" style="margin-right: 5px;">
+                        <i class="fa-solid fa-microphone"></i>
+                    </button>
+                    <!-- ----------------------------------------------- -->
 
                     <input type="text" id="message" placeholder="Xabar yozing..." autocomplete="off" class="form-control"/>
 
@@ -71,6 +79,9 @@
                     </button>
                 </div>
             </form>
+
+            <!-- ... pastdagi kodlar ... -->
+
         </div>
 
     </div>
