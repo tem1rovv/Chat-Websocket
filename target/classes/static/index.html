@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Chat</title>
+    <!-- Fontlar va Ikonkalar -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+<!-- 1. LOGIN SAHIFASI -->
+<div id="username-page">
+    <div class="username-page-container">
+        <h1 class="title">Chatga xush kelibsiz!</h1>
+        <form id="usernameForm" name="usernameForm">
+            <div class="form-group">
+                <input type="text" id="name" placeholder="Ismingizni kiriting..." autocomplete="off" class="form-control" />
+            </div>
+            <div class="form-group">
+                <button type="submit" class="accent-button">Chatni Boshlash</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 2. CHAT SAHIFASI (Yashirin) -->
+<div id="chat-page" class="hidden">
+    <div class="chat-container">
+
+        <!-- CHAP TOMON: RO'YXAT -->
+        <div class="users-sidebar">
+            <div class="sidebar-header">
+                <h2>Chatlar</h2>
+                <span id="currentUser" class="current-user-badge"></span>
+            </div>
+            <ul id="usersList" class="users-list">
+                <!-- Userlar shu yerga tushadi -->
+            </ul>
+        </div>
+
+        <!-- O'NG TOMON: XABARLAR -->
+        <div class="chat-area">
+            <div class="chat-header">
+                <div class="chat-header-info">
+                    <h3 id="chatHeader">Umumiy Chat</h3>
+                    <span id="typingStatus" class="typing-text"></span>
+                </div>
+            </div>
+
+            <ul id="messageArea" class="message-area">
+                <!-- Xabarlar shu yerga tushadi -->
+            </ul>
+
+            <form id="messageForm" name="messageForm" class="message-input-area">
+                <div class="input-group">
+                    <input type="text" id="message" placeholder="Xabar yozing..." autocomplete="off" class="form-control"/>
+                    <button type="submit" class="send-btn">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+<!-- KUTUBXONALAR -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.1.4/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<script src="/js/main.js"></script>
+</body>
+</html>
