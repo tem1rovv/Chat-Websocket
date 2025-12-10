@@ -14,16 +14,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // JavaScriptdagi "var socket = new SockJS('/ws');" shu yerga ulanadi
         registry.addEndpoint("/ws").withSockJS();
     }
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        // "stompClient.send('/app/...')" deganlar shu prefiks bilan ishlaydi
         registry.setApplicationDestinationPrefixes("/app");
 
-        // "stompClient.subscribe('/topic/...')" deganlar shu prefiks bilan ishlaydi
         registry.enableSimpleBroker("/topic");
     }
 

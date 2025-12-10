@@ -10,27 +10,26 @@ import java.util.Date;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Entity // Bazada jadval bo'lishi uchun
+@Entity
 public class ChatMessage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String chatId; // Private chat uchun unikal ID (masalan: ali_vali)
-    private String sender; // Kimdan
+    private String chatId;
+    private String sender;
     private String recipient;
-    // Kimga (null bo'lsa Public xabar)
-    @Lob // Katta hajmdagi ma'lumot (Large Object)
+    @Lob
     @Column(columnDefinition = "TEXT")
-    private String content;   // Xabar
-    private Date timestamp;   // Vaqt
+    private String content;
+    private Date timestamp;
 
     @Enumerated(EnumType.STRING)
     private MessageType type;
 
     public enum MessageType {
-        CHAT, JOIN, LEAVE, TYPING, // Yangi: Yozmoqda...
-        IMAGE
+        CHAT, JOIN, LEAVE, TYPING,
+        IMAGE, FILE
     }
 }

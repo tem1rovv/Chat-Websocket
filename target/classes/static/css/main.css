@@ -212,3 +212,40 @@ body {
     font-size: 18px;
 }
 .send-btn:hover { background: #0056b3; }
+/* Attach tugmasi */
+.attach-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #666;
+    cursor: pointer;
+    padding: 0 10px;
+    transition: color 0.3s;
+}
+.attach-btn:hover { color: #007bff; }
+
+/* O'qilmagan xabarlar soni (Badge) */
+.unread-badge {
+    background-color: #ff3b30;
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 50%;
+    margin-left: auto; /* O'ng tomonga taqash */
+    display: none; /* Boshida ko'rinmaydi */
+}
+
+/* Fayl xabari dizayni */
+.file-attachment {
+    display: flex;
+    align-items: center;
+    background: #f0f0f0;
+    padding: 10px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #333;
+    font-size: 13px;
+    margin-top: 5px;
+}
+.file-attachment i { font-size: 20px; margin-right: 10px; color: #555; }
