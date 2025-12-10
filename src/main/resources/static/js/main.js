@@ -4,7 +4,8 @@ var stompClient = null;
 var username = null;
 var selectedUser = null;
 
-
+// O'zgaruvchilar qatoriga qo'shing:
+var notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3'); // Yoki o'zingizdagi fayl
 // YANGI O'ZGARUVCHILAR
 var recordBtn = document.getElementById('recordBtn');
 var mediaRecorder = null;
@@ -170,6 +171,7 @@ function onPrivateMessageReceived(payload) {
 
         // 3. Userni tepaga ko'tarish
         moveUserToTop(message.sender);
+        notificationSound.play().catch(e => console.log("Ovoz chiqarish bloklandi (User interaktiv bo'lishi kerak)"));
     }
 }
 
@@ -216,11 +218,12 @@ function displayMessage(message) {
     }
     // --- YANGI QO'SHILGAN AUDIO QISMI ---
     else if (message.type === 'AUDIO') {
-        contentElement = document.createElement('audio');
-        contentElement.controls = true; // Play/Pause tugmalari chiqishi uchun
-        contentElement.src = message.content;
-        contentElement.style.marginTop = "5px";
-        contentElement.style.maxWidth = "250px"; // Chatda chiroyli turishi uchun
+        // contentElement = document.createElement('audio');
+        // contentElement.controls = true; // Play/Pause tugmalari chiqishi uchun
+        // contentElement.src = message.content;
+        // contentElement.style.marginTop = "5px";
+        // contentElement.style.maxWidth = "250px"; // Chatda chiroyli turishi uchun
+        contentElement = createCustomAudioPlayer(message.content);
     }
     // ------------------------------------
     else {
@@ -372,62 +375,83 @@ messageInput.addEventListener('input', function () {
     }
 });
 
-// ---------------------------------------------------------
-// OVOZLI XABAR LOGIKASI (YANGI)
-// ---------------------------------------------------------
+// --- OVOZLI XABAR LOGIKASI (YANGILANGAN) ---
 
-if (recordBtn) {
-    recordBtn.addEventListener('click', function() {
+var recordBtn = document.getElementById('recordBtn');
+var cancelRecordBtn = document.getElementById('cancelRecordBtn');
+var shouldSend = true; // Yuborish kerakmi?
+
+if (recordBtn && cancelRecordBtn) {
+    // Yozishni boshlash / to'xtatish
+    recordBtn.addEventListener('click', function(e) {
+        e.preventDefault();
         if (!isRecording) {
             startRecording();
         } else {
-            stopRecording();
+            stopRecording(true); // true = Serverga yuborilsin
         }
+    });
+
+    // Bekor qilish tugmasi
+    cancelRecordBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        stopRecording(false); // false = Yuborilmasin (Cancel)
     });
 }
 
 function startRecording() {
-    // Brauzerdan mikrofon ruxsatini so'rash
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Mikrofon ishlamaydi!");
+        return;
+    }
+
     navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
             mediaRecorder = new MediaRecorder(stream);
             mediaRecorder.start();
 
             isRecording = true;
-            recordBtn.classList.add('recording'); // Qizil effekt
-            typingStatus.innerText = "Ovoz yozilmoqda..."; // Statusga chiqarish
+            shouldSend = true; // Default holatda yuborishga tayyor
+
+            // UI o'zgarishlari
+            recordBtn.classList.add('recording');
+            cancelRecordBtn.style.display = 'inline-block'; // X tugmasini ko'rsatish
+            typingStatus.innerText = "Ovoz yozilmoqda... (Bekor qilish uchun X bosing)";
 
             audioChunks = [];
 
-            // Ovoz bo'laklarini yig'ish
             mediaRecorder.addEventListener("dataavailable", event => {
                 audioChunks.push(event.data);
             });
 
-            // Yozish to'xtaganda
             mediaRecorder.addEventListener("stop", () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' }); // Yoki 'audio/mp3'
-                sendAudioFile(audioBlob);
+                // UI ni avvalgi holatga qaytarish
+                recordBtn.classList.remove('recording');
+                cancelRecordBtn.style.display = 'none';
+                typingStatus.innerText = "";
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+
+                // Agar 'shouldSend' true bo'lsa, yuboramiz
+                if (shouldSend) {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    sendAudioFile(audioBlob);
+                } else {
+                    console.log("Ovozli xabar bekor qilindi.");
+                }
             });
         })
-        .catch(error => {
-            console.error("Mikrofonda xatolik:", error);
-            alert("Mikrofonni ishlatishga ruxsat bering!");
-        });
+        .catch(console.error);
 }
 
-function stopRecording() {
+function stopRecording(send) {
     if (mediaRecorder && isRecording) {
+        shouldSend = send; // Parametrga qarab yuborish yoki bekor qilishni belgilaymiz
         mediaRecorder.stop();
         isRecording = false;
-        recordBtn.classList.remove('recording');
-        typingStatus.innerText = "";
-
-        // Streamni o'chirish (mikrofon ikonkasini brauzerdan yo'qotish uchun)
-        mediaRecorder.stream.getTracks().forEach(track => track.stop());
     }
 }
 
+// sendAudioFile funksiyasi o'zgarishsiz qoladi
 // Ovoz faylini serverga yuklash va WebSocketga yuborish
 function sendAudioFile(audioBlob) {
     var formData = new FormData();
@@ -458,4 +482,72 @@ function sendAudioFile(audioBlob) {
             console.error("Audio yuklashda xatolik:", error);
             typingStatus.innerText = "Ovoz yuborilmadi!";
         });
+}
+function createCustomAudioPlayer(url) {
+    const container = document.createElement('div');
+    container.className = 'custom-audio-player';
+
+    // 1. Play Button
+    const playBtn = document.createElement('button');
+    playBtn.className = 'play-pause-btn';
+    playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+
+    // 2. Progress Bar
+    const progressContainer = document.createElement('div');
+    progressContainer.className = 'audio-progress';
+    const progressFill = document.createElement('div');
+    progressFill.className = 'progress-bar-fill';
+    progressContainer.appendChild(progressFill);
+
+    // 3. Duration Text
+    const durationText = document.createElement('span');
+    durationText.className = 'audio-duration';
+    durationText.innerText = "00:00";
+
+    // 4. Hidden Audio Element (Logic uchun)
+    const audio = new Audio(url);
+
+    // Logika: Play/Pause
+    playBtn.addEventListener('click', () => {
+        if (audio.paused) {
+            audio.play();
+            playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+        } else {
+            audio.pause();
+            playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+        }
+    });
+
+    // Logika: Progress Bar yurishi
+    audio.addEventListener('timeupdate', () => {
+        const percent = (audio.currentTime / audio.duration) * 100;
+        progressFill.style.width = percent + "%";
+
+        // Vaqtni formatlash (mm:ss)
+        let mins = Math.floor(audio.currentTime / 60);
+        let secs = Math.floor(audio.currentTime % 60);
+        if (secs < 10) secs = '0' + secs;
+        durationText.innerText = mins + ":" + secs;
+    });
+
+    // Logika: Tugaganda
+    audio.addEventListener('ended', () => {
+        playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+        progressFill.style.width = "0%";
+        durationText.innerText = "00:00";
+    });
+
+    // Logika: Metadata yuklanganda umumiy vaqtni olish (ixtiyoriy)
+    audio.addEventListener('loadedmetadata', () => {
+        let mins = Math.floor(audio.duration / 60);
+        let secs = Math.floor(audio.duration % 60);
+        if (secs < 10) secs = '0' + secs;
+        // durationText.innerText = mins + ":" + secs; // Buni boshida ko'rsatish mumkin
+    });
+
+    container.appendChild(playBtn);
+    container.appendChild(progressContainer);
+    container.appendChild(durationText);
+
+    return container;
 }
